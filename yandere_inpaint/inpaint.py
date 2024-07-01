@@ -28,20 +28,12 @@ class CacheData:
 cachedData = None
 
 
-def limitSizeByMinDimension(image: Image, size):
-    w, h = image.size
-    k = size / min(w, h)
-    newW = w * k
-    newH = h * k
-
-    return int(newW), int(newH)
-
 
 def processUpscaler(im):
     upscaler_name = getYandereInpaintUpscaler()
     upscalers = [x for x in shared.sd_upscalers if x.name == upscaler_name]
     if len(upscalers) == 0:
-        raise Exception("Can't find yandrere inpainting model. See installation guide")
+        raise Exception(f"Can't find yandrere inpainting model '{upscaler_name}'. See installation guide")
     else:
         upscaler = upscalers[0]
 
