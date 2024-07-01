@@ -1,6 +1,6 @@
 # Yandere Inpainting as masked content
 
-This extenstion for [AUTOMATIC1111/stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) adds new value of "Masked content" field in img2img -> inpaint tab. It uses 1x upscaler [1x-NMKD-YandereInpaint](https://openmodeldb.info/models/1x-NMKD-YandereInpaint)
+This extenstion for [AUTOMATIC1111/stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) adds new value of "Masked content" field in img2img -> inpaint tab. It uses ESRGAN 1x upscaler [1x-NMKD-YandereInpaint](https://openmodeldb.info/models/1x-NMKD-YandereInpaint)
 
 ![](/images/authors_example.jpg)
 
