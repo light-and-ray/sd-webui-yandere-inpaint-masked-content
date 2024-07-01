@@ -20,10 +20,14 @@ def areImagesTheSame(image_one, image_two):
 
 
 def crop(image: Image.Image, origMask: Image.Image, padding: int):
-    return image.crop(masking.get_crop_region(origMask, padding))
+    crop_region = masking.get_crop_region(origMask, padding)
+    crop_region = masking.expand_crop_region(crop_region, 1, 1, origMask.width, origMask.height)
+    return image.crop(crop_region)
 
 def uncrop(image: Image.Image, origImage: Image.Image, origMask: Image.Image, padding: int):
-    x1, y1, x2, y2 = masking.get_crop_region(origMask, padding)
+    crop_region = masking.get_crop_region(origMask, padding)
+    crop_region = masking.expand_crop_region(crop_region, 1, 1, origMask.width, origMask.height)
+    x1, y1, x2, y2 = crop_region
     paste_to = (x1, y1, x2-x1, y2-y1)
     image_masked = Image.new('RGBa', (origImage.width, origImage.height))
     image_masked.paste(origImage.convert("RGBA").convert("RGBa"), mask=ImageChops.invert(origMask))
