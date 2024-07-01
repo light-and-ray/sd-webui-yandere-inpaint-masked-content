@@ -3,7 +3,7 @@ import copy
 from typing import Any
 from dataclasses import dataclass
 from modules import shared, errors
-from yandere_inpaint.options import getYandereInpaintUpscaler
+from yandere_inpaint.options import getYandereInpaintUpscaler, getYandereInpaintTileSize
 
 
 def areImagesTheSame(image_one, image_two):
@@ -37,7 +37,12 @@ def processUpscaler(im):
     else:
         upscaler = upscalers[0]
 
-    im = upscaler.scaler.upscale(im, 1, upscaler.data_path)
+    old_ESRGAN_tile = shared.opts.ESRGAN_tile
+    try:
+        shared.opts.ESRGAN_tile = getYandereInpaintTileSize()
+        im = upscaler.scaler.upscale(im, 1, upscaler.data_path)
+    finally:
+        shared.opts.ESRGAN_tile = old_ESRGAN_tile
     return im
 
 
@@ -64,6 +69,8 @@ def yandereInpaint(image: Image.Image, mask: Image.Image, invert: int):
         result = processUpscaler(maskedImage.convert('RGB')).convert('RGBA')
         shared.state.textinfo = ""
         shared.state.assign_current_image(result)
+        if shared.state.interrupted:
+            return image
         cachedData = CacheData(copy.copy(image), copy.copy(initMask), invert, copy.copy(result))
         print("yandere inpainted cached")
 

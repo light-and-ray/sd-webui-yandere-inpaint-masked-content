@@ -8,11 +8,26 @@ def getYandereInpaintUpscaler():
     res = shared.opts.data.get("yandere_inpaint_upscaler_name", ORIGINAL_NAME)
     return res
 
+def getYandereInpaintTileSize():
+    res = shared.opts.data.get("yandere_inpaint_tile_size", 512)
+    return res
+
+
 yandere_upscaler_settings = {
     'yandere_inpaint_upscaler_name': shared.OptionInfo(
                 ORIGINAL_NAME,
                 "Override yandere inpaint upscaler name",
                 gr.Textbox,
+            ),
+    'yandere_inpaint_tile_size': shared.OptionInfo(
+                512,
+                "Tile size for yandere inpainting",
+                gr.Slider,
+                {
+                    "minimum": 128,
+                    "maximum": 2048,
+                    "step": 8,
+                }
             ),
 }
 
