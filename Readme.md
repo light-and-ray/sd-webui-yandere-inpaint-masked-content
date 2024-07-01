@@ -4,7 +4,7 @@ This extenstion for [AUTOMATIC1111/stable-diffusion-webui](https://github.com/AU
 
 Installation:
 - Install this extension: go into Extensions/Available, and find "yandere inpainting" there. Or install by url
-- Download this model [here](https://icedrive.net/s/43GNBihZyi) and place it in `models/ESRGAN` folder
+- Download this model [here](https://icedrive.net/s/43GNBihZyi) (find YandereInpaint dir, and .pt file there) and place it in `models/ESRGAN` folder
 - Restart webui
 
-It works good for small inpaint area in art
+It works good for removing objects in small inpaint area in arts. But for big areas and for photos [lama cleaner](https://github.com/light-and-ray/sd-webui-lama-cleaner-masked-content) can be better
