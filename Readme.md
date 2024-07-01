@@ -15,4 +15,4 @@ Usage:
 - be sure your resolution is good
 - use small brush size, in other way the model will generate white areas
 
-It works good for removing small objects/watermarks in anime arts. But for big areas and for photos [lama cleaner](https://github.com/light-and-ray/sd-webui-lama-cleaner-masked-content) can be better
+It works good for removing small objects/watermarks in anime arts. But for big areas and for photos [lama cleaner](https://github.com/light-and-ray/sd-webui-lama-cleaner-masked-content) is better
