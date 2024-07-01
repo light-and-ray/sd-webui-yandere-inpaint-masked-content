@@ -41,8 +41,7 @@ def processUpscaler(im):
     upscaler_name = getYandereInpaintUpscaler()
     upscalers = [x for x in shared.sd_upscalers if x.name == upscaler_name]
     if len(upscalers) == 0:
-        print(f"could not find upscaler named {upscaler_name or '<empty string>'}")
-        return None
+        raise Exception("Can't find yandrere inpainting model. See installation guide")
     else:
         upscaler = upscalers[0]
 
