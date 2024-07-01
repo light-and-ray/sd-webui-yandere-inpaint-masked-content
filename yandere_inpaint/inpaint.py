@@ -2,7 +2,8 @@ from PIL import Image, ImageChops
 import copy
 from typing import Any
 from dataclasses import dataclass
-from modules import shared, errors
+from modules import shared, masking
+from modules.processing import apply_overlay
 from yandere_inpaint.options import getYandereInpaintUpscaler, getYandereInpaintTileSize
 
 
@@ -18,15 +19,16 @@ def areImagesTheSame(image_one, image_two):
         return True
 
 
-@dataclass
-class CacheData:
-    image: Any
-    mask: Any
-    invert: Any
-    result: Any
+def crop(image: Image.Image, origMask: Image.Image, padding: int):
+    return image.crop(masking.get_crop_region(origMask, padding))
 
-cachedData = None
-
+def uncrop(image: Image.Image, origImage: Image.Image, origMask: Image.Image, padding: int):
+    x1, y1, x2, y2 = masking.get_crop_region(origMask, padding)
+    paste_to = (x1, y1, x2-x1, y2-y1)
+    image_masked = Image.new('RGBa', (origImage.width, origImage.height))
+    image_masked.paste(origImage.convert("RGBA").convert("RGBa"), mask=ImageChops.invert(origMask))
+    overlay_image = image_masked.convert('RGBA')
+    return apply_overlay(image, paste_to, overlay_image)[0]
 
 
 def processUpscaler(im):
@@ -39,18 +41,32 @@ def processUpscaler(im):
 
     old_ESRGAN_tile = shared.opts.ESRGAN_tile
     try:
-        shared.opts.ESRGAN_tile = getYandereInpaintTileSize()
+        shared.opts.ESRGAN_tile = min(getYandereInpaintTileSize(), max(*im.size))
         im = upscaler.scaler.upscale(im, 1, upscaler.data_path)
     finally:
         shared.opts.ESRGAN_tile = old_ESRGAN_tile
     return im
 
 
-def yandereInpaint(image: Image.Image, mask: Image.Image, invert: int):
+
+@dataclass
+class CacheData:
+    image: Any
+    mask: Any
+    invert: Any
+    padding: Any
+    result: Any
+
+cachedData = None
+
+
+
+def yandereInpaint(image: Image.Image, mask: Image.Image, invert: int, padding: int):
     global cachedData
     result = None
     if cachedData is not None and\
             cachedData.invert == invert and\
+            cachedData.padding == padding and\
             areImagesTheSame(cachedData.image, image) and\
             areImagesTheSame(cachedData.mask, mask):
         result = copy.copy(cachedData.result)
@@ -58,9 +74,13 @@ def yandereInpaint(image: Image.Image, mask: Image.Image, invert: int):
         shared.state.assign_current_image(result)
     else:
         initMask = mask
+        initImage = image
         if invert:
             mask = ImageChops.invert(mask)
         mask = mask.convert('1').resize(image.size)
+        if padding is not None:
+            mask = crop(mask, initMask, padding)
+            image = crop(image, initMask, padding)
         greenFilling = Image.new('RGB', image.size, (0, 255, 0))
         maskedImage = copy.copy(image)
         maskedImage.paste(greenFilling, mask)
@@ -70,8 +90,10 @@ def yandereInpaint(image: Image.Image, mask: Image.Image, invert: int):
         shared.state.textinfo = ""
         shared.state.assign_current_image(result)
         if shared.state.interrupted:
-            return image
-        cachedData = CacheData(copy.copy(image), copy.copy(initMask), invert, copy.copy(result))
+            return initImage
+        if padding is not None:
+            result = uncrop(result, initImage, initMask, padding)
+        cachedData = CacheData(copy.copy(initImage), copy.copy(initMask), invert, padding, copy.copy(result))
         print("yandere inpainted cached")
 
     return result
