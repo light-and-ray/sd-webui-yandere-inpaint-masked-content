@@ -78,13 +78,15 @@ def yandereInpaint(image: Image.Image, mask: Image.Image, invert: int, padding: 
         shared.state.assign_current_image(result)
     else:
         initMask = mask
+        initMaskMaybeInverted = mask
         initImage = image
         if invert:
             mask = ImageChops.invert(mask)
+            initMaskMaybeInverted = mask
         mask = mask.convert('1').resize(image.size)
         if padding is not None:
-            mask = crop(mask, initMask, padding)
-            image = crop(image, initMask, padding)
+            mask = crop(mask, initMaskMaybeInverted, padding)
+            image = crop(image, initMaskMaybeInverted, padding)
         greenFilling = Image.new('RGB', image.size, (0, 255, 0))
         maskedImage = copy.copy(image)
         maskedImage.paste(greenFilling, mask)
@@ -96,7 +98,7 @@ def yandereInpaint(image: Image.Image, mask: Image.Image, invert: int, padding: 
         if shared.state.interrupted:
             return initImage
         if padding is not None:
-            result = uncrop(result, initImage, initMask, padding)
+            result = uncrop(result, initImage, initMaskMaybeInverted, padding)
         cachedData = CacheData(copy.copy(initImage), copy.copy(initMask), invert, padding, copy.copy(result))
         print("yandere inpainted cached")
 
