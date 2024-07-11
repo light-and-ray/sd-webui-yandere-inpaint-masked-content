@@ -1,42 +1,17 @@
-from PIL import Image, ImageChops
+from PIL import Image, ImageOps
 import copy
 from typing import Any
 from dataclasses import dataclass
-from modules import shared, masking
-from modules.processing import apply_overlay
-from yandere_inpaint.options import getYandereInpaintUpscaler, getYandereInpaintTileSize
-
-
-def areImagesTheSame(image_one, image_two):
-    if image_one.size != image_two.size:
-        return False
-
-    diff = ImageChops.difference(image_one.convert('RGB'), image_two.convert('RGB'))
-
-    if diff.getbbox():
-        return False
-    else:
-        return True
-
-
-def crop(image: Image.Image, origMask: Image.Image, padding: int):
-    crop_region = masking.get_crop_region(origMask, padding)
-    crop_region = masking.expand_crop_region(crop_region, 1, 1, origMask.width, origMask.height)
-    return image.crop(crop_region)
-
-def uncrop(image: Image.Image, origImage: Image.Image, origMask: Image.Image, padding: int):
-    crop_region = masking.get_crop_region(origMask, padding)
-    crop_region = masking.expand_crop_region(crop_region, 1, 1, origMask.width, origMask.height)
-    x1, y1, x2, y2 = crop_region
-    paste_to = (x1, y1, x2-x1, y2-y1)
-    image_masked = Image.new('RGBa', (origImage.width, origImage.height))
-    image_masked.paste(origImage.convert("RGBA").convert("RGBa"), mask=ImageChops.invert(origMask))
-    overlay_image = image_masked.convert('RGBA')
-    return apply_overlay(image, paste_to, overlay_image)[0]
+from modules.images import resize_image
+from modules import shared
+from .tools import (crop, uncrop, areImagesTheSame, applyMaskBlur, limitSizeByMinDimension
+)
+from .options import getYandereInpaintModel, getYandereInpaintTileSize
+from resynthesizer import resynthesize
 
 
 def processUpscaler(im):
-    upscaler_name = getYandereInpaintUpscaler()
+    upscaler_name = getYandereInpaintModel()
     upscalers = [x for x in shared.sd_upscalers if x.name == upscaler_name]
     if len(upscalers) == 0:
         raise Exception(f"Can't find yandrere inpainting model '{upscaler_name}'. See installation guide")
@@ -58,48 +33,66 @@ class CacheData:
     image: Any
     mask: Any
     invert: Any
+    upscaler: Any
     padding: Any
+    resolution: Any
+    blur: Any
     result: Any
 
 cachedData = None
 
 
 
-def yandereInpaint(image: Image.Image, mask: Image.Image, invert: int, padding: int):
+def yandereInpaint(image: Image, mask: Image, invert: int, upscaler: str, padding: int|None, resolution: int, blur: int):
     global cachedData
     result = None
     if cachedData is not None and\
             cachedData.invert == invert and\
+            cachedData.upscaler == upscaler and\
             cachedData.padding == padding and\
+            cachedData.resolution == resolution and\
+            cachedData.blur == blur and\
             areImagesTheSame(cachedData.image, image) and\
             areImagesTheSame(cachedData.mask, mask):
         result = copy.copy(cachedData.result)
         print("yandere inpainted restored from cache")
         shared.state.assign_current_image(result)
     else:
-        initMask = mask
-        initMaskMaybeInverted = mask
-        initImage = image
-        if invert:
-            mask = ImageChops.invert(mask)
-            initMaskMaybeInverted = mask
-        mask = mask.convert('1').resize(image.size)
+        forCache = CacheData(image.copy(), mask.copy(), invert, upscaler, padding, resolution, blur, None)
+        if invert == 1:
+            mask = ImageOps.invert(mask)
+        mask = applyMaskBlur(mask, blur)
+        initImage = copy.copy(image)
+        image = copy.copy(initImage)
         if padding is not None:
-            mask = crop(mask, initMaskMaybeInverted, padding)
-            image = crop(image, initMaskMaybeInverted, padding)
-        greenFilling = Image.new('RGB', image.size, (0, 255, 0))
-        maskedImage = copy.copy(image)
-        maskedImage.paste(greenFilling, mask)
+            maskNotCropped = mask
+            image = crop(image, maskNotCropped, padding)
+            mask = crop(mask, maskNotCropped, padding)
+        resolution = min(*image.size, resolution)
+        newW, newH = limitSizeByMinDimension(image, resolution)
+        imageRes = image.resize((newW, newH))
+        maskRes = mask.resize((newW, newH))
+
+        greenFilling = Image.new('RGB', imageRes.size, (0, 255, 0))
+        maskedImage = imageRes.copy()
+        maskedImage.paste(greenFilling, maskRes.convert('1'))
         shared.state.textinfo = "yandere inpainting"
         shared.state.assign_current_image(maskedImage)
-        result = processUpscaler(maskedImage.convert('RGB')).convert('RGBA')
-        shared.state.textinfo = ""
-        shared.state.assign_current_image(result)
-        if shared.state.interrupted:
-            return initImage
+
+        tmpImage = processUpscaler(maskedImage.convert('RGB')).convert('RGBA')
+        inpaintedImage = imageRes
+        inpaintedImage.paste(tmpImage, maskRes)
+        shared.state.assign_current_image(inpaintedImage)
+        w, h = image.size
+        shared.state.textinfo = "upscaling yandere inpainted"
+        inpaintedImage = resize_image(0, inpaintedImage.convert('RGB'), w, h, upscaler).convert('RGBA')
+        result = image
+        result.paste(inpaintedImage, mask)
         if padding is not None:
-            result = uncrop(result, initImage, initMaskMaybeInverted, padding)
-        cachedData = CacheData(copy.copy(initImage), copy.copy(initMask), invert, padding, copy.copy(result))
+            result = uncrop(result, initImage, maskNotCropped, padding)
+        shared.state.textinfo = ""
+        forCache.result = result.copy()
+        cachedData = forCache
         print("yandere inpainted cached")
 
     return result

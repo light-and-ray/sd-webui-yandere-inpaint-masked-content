@@ -1,6 +1,7 @@
 import modules.scripts
 from modules.processing import StableDiffusionProcessingImg2Img
 from yandere_inpaint.inpaint import yandereInpaint
+from yandere_inpaint.options import getResolution, getYandereInpaintUpscaler
 
 INPAINTING_FILL_ELEMENTS = ['img2img_inpainting_fill', 'replacer_inpainting_fill']
 
@@ -33,8 +34,8 @@ class Script(modules.scripts.Script):
         padding = None
         if p.inpaint_full_res:
             padding = p.inpaint_full_res_padding
-        p.init_images[0] = yandereInpaint(p.init_images[0], p.image_mask,
-                    p.inpainting_mask_invert, padding)
+        p.init_images[0] = yandereInpaint(p.init_images[0], p.image_mask, p.inpainting_mask_invert,
+                    getYandereInpaintUpscaler(), padding, getResolution(), p.mask_blur)
         p.inpainting_fill = 1 # original
 
 

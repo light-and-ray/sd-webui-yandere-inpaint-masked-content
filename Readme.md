@@ -14,6 +14,7 @@ Usage:
 - set denoising to low. If you use 0, set sampler to Euler, or it will be crash. 0 means almost original model output
 - be sure your resolution is good
 - use small brush size, in other way the model will generate white areas
+- If you need to remove white artifacts, reduce resolution in Settings -> Extra Inpaint or in extras tab if lama installed
 
 It works good for removing small objects/watermarks in anime arts. But for big areas and for photos [lama cleaner](https://github.com/light-and-ray/sd-webui-lama-cleaner-masked-content) is better
 
