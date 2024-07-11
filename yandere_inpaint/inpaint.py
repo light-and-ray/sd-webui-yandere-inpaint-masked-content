@@ -79,7 +79,7 @@ def yandereInpaint(image: Image, mask: Image, invert: int, upscaler: str, paddin
         shared.state.textinfo = "yandere inpainting"
         shared.state.assign_current_image(maskedImage)
 
-        tmpImage = processUpscaler(maskedImage.convert('RGB')).convert('RGBA')
+        tmpImage = processUpscaler(maskedImage.convert('RGB')).convert('RGBA').resize(imageRes.size)
         inpaintedImage = imageRes
         inpaintedImage.paste(tmpImage, maskRes)
         shared.state.assign_current_image(inpaintedImage)
