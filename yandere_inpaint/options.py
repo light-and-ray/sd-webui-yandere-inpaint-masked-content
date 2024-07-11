@@ -31,5 +31,5 @@ yandere_upscaler_settings = {
             ),
 }
 
-shared.options_templates.update(shared.options_section(('upscaling', 'Upscaling'), yandere_upscaler_settings))
+shared.options_templates.update(shared.options_section(('extras_inpaint', 'Extras Inpaint'), yandere_upscaler_settings))
 
