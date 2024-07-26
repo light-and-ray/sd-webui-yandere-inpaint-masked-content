@@ -5,6 +5,14 @@ from yandere_inpaint.options import getResolution, getYandereInpaintUpscaler
 
 INPAINTING_FILL_ELEMENTS = ['img2img_inpainting_fill', 'replacer_inpainting_fill']
 
+colorfix = None
+try:
+    from modules import colorfix
+except ImportError:
+    try:
+        from srmodule import colorfix
+    except ImportError:
+        pass
 
 
 class Script(modules.scripts.Script):

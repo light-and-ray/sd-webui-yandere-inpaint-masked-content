@@ -7,7 +7,15 @@ from modules import shared
 from .tools import (crop, uncrop, areImagesTheSame, applyMaskBlur, limitSizeByMinDimension
 )
 from .options import getYandereInpaintModel, getYandereInpaintTileSize
-from resynthesizer import resynthesize
+
+colorfix = None
+try:
+    from modules import colorfix
+except ImportError:
+    try:
+        from srmodule import colorfix
+    except ImportError:
+        pass
 
 
 def processUpscaler(im):
@@ -85,7 +93,11 @@ def yandereInpaint(image: Image, mask: Image, invert: int, upscaler: str, paddin
         shared.state.assign_current_image(inpaintedImage)
         w, h = image.size
         shared.state.textinfo = "upscaling yandere inpainted"
-        inpaintedImage = resize_image(0, inpaintedImage.convert('RGB'), w, h, upscaler).convert('RGBA')
+        inpaintedImage = inpaintedImage.convert('RGB')
+        beforeUpscale = inpaintedImage
+        inpaintedImage = resize_image(0, inpaintedImage, w, h, upscaler)
+        if colorfix:
+            inpaintedImage = colorfix.wavelet_color_fix(inpaintedImage, beforeUpscale.resize(inpaintedImage.size)).convert('RGBA')
         result = image
         result.paste(inpaintedImage, mask)
         if padding is not None:
